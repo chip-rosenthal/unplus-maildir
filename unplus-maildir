@@ -144,12 +144,18 @@ unplus_path() {
   echo "$result"
 }
 
+# Run a shell command (maybe).
+#
 exec_cmd() {
+  # We'll lose $@ in the (shell), so get the args into an array variable.
   local -a args=("$@")
+
+  # Execute the shell command (maybe).
   (
     set -e $EXEC_VERBOSE --
     $INHIBIT_EXEC "${args[@]}"
   )
+
   return $?
 }
 
@@ -176,28 +182,35 @@ fi
 
 MaildirSubdirBase=`calculate_maildir_subdir_base "$Maildir"`
 
-
-
 echo "maildir inbox base      = $Maildir"
 echo "maildir subfolders base = $MaildirSubdirBase"
 
 (cd $Maildir && find . -type d -print) | while read folder ; do
-  folder=${folder##./} # strip leading "./" from folder path
+
+  # strip leading "./" from folder path
+  folder=${folder##./}
+
+  # skip some directories that we know aren't subfolders
   case "$folder" in
   .)      continue ;;
   */cur)  continue ;;
   */new)  continue ;;
   */tmp)  continue ;;
   esac
+
+  # complain about (but otherwise ignore) if it isn't a maildir
   if is_valid_maildir "$Maildir/$folder" ; then
     : ok
   else
     warn "skipping invalid maildir: $folder"
     continue
   fi
+
+  # calculate the new relative pathname for this folder
   new_folder=`unplus_path "$folder"`
   echo "MOVE \"$folder\" => \"$new_folder\""
 
+  # execute the move
   dir="$MaildirSubdirBase/`dirname \"$new_folder\"`"
   if [ ! -d "$dir" ] ; then
     exec_cmd mkdir -p "$dir"
