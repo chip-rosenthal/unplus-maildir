@@ -62,9 +62,12 @@ AUTHOR
     Chip Rosenthal
     <chip@unicom.com>
 
+    This package is published at: https://github.com/chip-rosenthal/unplus-maildir
+
 UNLICENSE
-    This is free and unencumbered software released into the public domain,
-    per statement posted at http://unlicense.org/
+    This is free and unencumbered software released into the public domain.
+    See https://raw.githubusercontent.com/chip-rosenthal/unplus-maildir/master/LICENSE
+
 _EOT_
 }
 

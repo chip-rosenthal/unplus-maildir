@@ -1,0 +1,42 @@
+NAME
+    unplus-maildir
+
+SYNOPSIS
+    ./unplus-maildir [-nh] MAILDIR
+
+DESCRIPTION
+    The Maildir+ directory layout (as used by Dovecot) keeps subfolders
+    in a path such as:
+
+        ~/Maildir/.foo.bar.baz.blah
+
+    The Maildir directory layout (as used by Kmail/Akonadi) keeps
+    subfolders in a path such as:
+
+        ~/.Maildir.directory/.foo.directory/.bar.directory/.baz.directory/blah
+
+    This script runs on a Maildir+ directory (specified by MAILDIR)
+    and re-arranges the subfolders to follow a Maildir directory layout.
+
+    No files are added, removed, or changed. This script just renames
+    directories.
+
+OPTIONS
+    -n    Just print commands that would be performed, but do not
+          execute them.
+
+    -h    Display this help message.
+
+BUGS
+    Doesn't have an undo to covert back.
+
+AUTHOR
+    Chip Rosenthal
+    <chip@unicom.com>
+
+    This package is published at: https://github.com/chip-rosenthal/unplus-maildir
+
+UNLICENSE
+    This is free and unencumbered software released into the public domain.
+    See https://raw.githubusercontent.com/chip-rosenthal/unplus-maildir/master/LICENSE
+
