@@ -1,0 +1,208 @@
+#!/bin/bash
+#
+# unplus-maildir - Convert Maildir+ directory layout to Maildir.
+#
+# Run with the "-h" option for help.
+
+set -e
+SYNOPSIS="$0 [-nh] MAILDIR"
+
+INHIBIT_EXEC=   # -n option sets to ":" to inhibit commands from being run
+EXEC_VERBOSE='' # -n command sets to "-x" to display command to be run
+
+die() {
+  echo "$0: $@" >&2
+  exit 1
+}
+
+warn() {
+  echo "$0: $@" >&2
+}
+
+usage_error() {
+  echo "usage: $SYNOPSIS (try \"-h\" for help)" >&2
+  exit 1
+}
+
+do_help() {
+  ${PAGER:-less} <<_EOT_
+NAME
+    unplus-maildir
+
+SYNOPSIS
+    $SYNOPSIS
+
+DESCRIPTION
+    The Maildir+ directory layout (as used by Dovecot) keeps subfolders
+    in a path such as:
+
+        ~/Maildir/.foo.bar.baz.blah
+
+    The Maildir directory layout (as used by Kmail/Akonadi) keeps
+    subfolders in a path such as:
+
+        ~/.Maildir.directory/.foo.directory/.bar.directory/.baz.directory/blah
+
+    This script runs on a Maildir+ directory (specified by MAILDIR)
+    and re-arranges the subfolders to follow a Maildir directory layout.
+
+    No files are added, removed, or changed. This script just renames
+    directories.
+
+OPTIONS
+    -n    Just print commands that would be performed, but do not
+          execute them.
+
+    -h    Display this help message.
+
+BUGS
+    Doesn't have an undo to covert back.
+
+AUTHOR
+    Chip Rosenthal
+    <chip@unicom.com>
+
+UNLICENSE
+    This is free and unencumbered software released into the public domain,
+    per statement posted at http://unlicense.org/
+_EOT_
+}
+
+
+# Calculate the dirname of a path, like the dirname(1) command.
+dirname() {
+  if [ $# -ne 1 ] ; then
+    die "usage: dirname DIR"
+  fi
+  echo "${1%/*}"
+}
+
+
+# Calculate the basename of a path, like the basename(1) command.
+basename() {
+  if [ $# -ne 1 ] ; then
+    die "usage: basename DIR"
+  fi
+  echo "${1##*/}"
+}
+
+
+# Given a valid maildir base directory (like $HOME/Maildir), calculate
+# the path to the base directory where its subfolder directories goes
+# (like $HOME/.Maildir.directory).
+#
+calculate_maildir_subdir_base() {
+  local dirname=`dirname "$1"`
+  local basename=`basename "$1"`
+  echo "${dirname}/.${basename}.directory"
+}
+
+# Return if given DIR is path to a valid maildir.
+is_valid_maildir() {
+  if [ $# -ne 1 ] ; then
+    die "usage: valid_maildir DIR"
+  fi
+  local dir="$1"
+
+  [[ -d $dir && -d $dir/cur && -d $dir/new && -d $dir/tmp ]]
+  return $?
+}
+
+
+# Convert a maildir+ folder name to a maildir folder name.
+#
+# maildir+ path => .foo.bar.blah.baz
+# result => .foo.directory/.bar.directory/.blah.directory/baz
+#
+unplus_path() {
+  if [ $# -ne 1 ] ; then
+    die "usage: unplus_path DIR"
+  fi
+  local old="${1##.}"
+
+  local saveIFS="$IFS"
+  IFS="."
+  local -a try=($old)
+  IFS="$saveIFS"
+
+  local -i n=${#try[@]}
+
+  # resulting path will be built up here
+  local result=""
+
+  # add each component "foo" -> ".foo.directory"
+  for ((i = 0 ; i < n-1 ; ++i)) ; do
+    result="${result}/.${try[$i]}.directory"
+  done
+
+  # add final component
+  result="${result}/${try[$n-1]}"
+
+  # trim leading "/"
+  result="${result##/}"
+
+  echo "$result"
+}
+
+exec_cmd() {
+  local -a args=("$@")
+  (
+    set -e $EXEC_VERBOSE --
+    $INHIBIT_EXEC "${args[@]}"
+  )
+  return $?
+}
+
+##############################################################################
+
+while getopts 'hn' opt ; do
+  case "$opt" in
+  h) do_help ; exit 0 ;;
+  n) INHIBIT_EXEC=':' EXEC_VERBOSE='-x' ;;
+  *) usage_error ;;
+  esac
+done
+shift $((OPTIND-1))
+
+if (( $# != 1 )) ; then
+  usage_error
+fi
+
+Maildir="$1"
+
+if ! is_valid_maildir $Maildir ; then
+  die "invalid maildir \"$Maildir\" specified"
+fi
+
+MaildirSubdirBase=`calculate_maildir_subdir_base "$Maildir"`
+
+
+
+echo "maildir inbox base      = $Maildir"
+echo "maildir subfolders base = $MaildirSubdirBase"
+
+(cd $Maildir && find . -type d -print) | while read folder ; do
+  folder=${folder##./} # strip leading "./" from folder path
+  case "$folder" in
+  .)      continue ;;
+  */cur)  continue ;;
+  */new)  continue ;;
+  */tmp)  continue ;;
+  esac
+  if is_valid_maildir "$Maildir/$folder" ; then
+    : ok
+  else
+    warn "skipping invalid maildir: $folder"
+    continue
+  fi
+  new_folder=`unplus_path "$folder"`
+  echo "MOVE \"$folder\" => \"$new_folder\""
+
+  dir="$MaildirSubdirBase/`dirname \"$new_folder\"`"
+  if [ ! -d "$dir" ] ; then
+    exec_cmd mkdir -p "$dir"
+  fi
+  exec_cmd mv "$Maildir/$folder" "$MaildirSubdirBase/$new_folder"
+
+done
+
