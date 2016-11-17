@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# unplus-maildir - Convert Maildir+ directory layout to Maildir.
+# unplus-maildir - Convert Maildir++ format subfolders to a Kmail Maildir layout.
 #
 # Run with the "-h" option for help.
 
@@ -27,24 +27,24 @@ usage_error() {
 do_help() {
   ${PAGER:-less} <<_EOT_
 NAME
-    unplus-maildir
+    unplus-maildir - Convert Maildir++ format subfolders to a Kmail Maildir layout.
 
 SYNOPSIS
     $SYNOPSIS
 
 DESCRIPTION
-    The Maildir+ directory layout (as used by Dovecot) keeps subfolders
-    in a path such as:
+    The Maildir++ directory layout (as used by Courier and Dovecot)
+    keeps subfolders in a path such as:
 
         ~/Maildir/.foo.bar.baz.blah
 
-    The Maildir directory layout (as used by Kmail/Akonadi) keeps
-    subfolders in a path such as:
+    The Kmail/Akonadi system uses a different (non-standard) arrangement
+    for subfolders.  It would keep this subfolder in a path such as:
 
         ~/.Maildir.directory/.foo.directory/.bar.directory/.baz.directory/blah
 
-    This script runs on a Maildir+ directory (specified by MAILDIR)
-    and re-arranges the subfolders to follow a Maildir directory layout.
+    This script runs on a Maildir++ directory (specified by MAILDIR) and
+    re-arranges the subfolders to follow a Kmail Maildir directory layout.
 
     No files are added, removed, or changed. This script just renames
     directories.
@@ -100,7 +100,8 @@ calculate_maildir_subdir_base() {
   echo "${dirname}/.${basename}.directory"
 }
 
-# Return if given DIR is path to a valid maildir.
+# Return success if given DIR is path to a valid maildir.
+#
 is_valid_maildir() {
   if [ $# -ne 1 ] ; then
     die "usage: valid_maildir DIR"
@@ -125,21 +126,21 @@ unplus_path() {
 
   local saveIFS="$IFS"
   IFS="."
-  local -a try=($old)
+  local -a subfolders=($old)
   IFS="$saveIFS"
 
-  local -i n=${#try[@]}
+  local -i n=${#subfolders[@]}
 
   # resulting path will be built up here
   local result=""
 
   # add each component "foo" -> ".foo.directory"
   for ((i = 0 ; i < n-1 ; ++i)) ; do
-    result="${result}/.${try[$i]}.directory"
+    result="${result}/.${subfolders[$i]}.directory"
   done
 
   # add final component
-  result="${result}/${try[$n-1]}"
+  result="${result}/${subfolders[$n-1]}"
 
   # trim leading "/"
   result="${result##/}"

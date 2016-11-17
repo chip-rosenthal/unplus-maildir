@@ -1,22 +1,22 @@
 NAME
-    unplus-maildir
+    unplus-maildir - Convert Maildir++ format subfolders to a Kmail Maildir layout.
 
 SYNOPSIS
     ./unplus-maildir [-nh] MAILDIR
 
 DESCRIPTION
-    The Maildir+ directory layout (as used by Dovecot) keeps subfolders
-    in a path such as:
+    The Maildir++ directory layout (as used by Courier and Dovecot)
+    keeps subfolders in a path such as:
 
         ~/Maildir/.foo.bar.baz.blah
 
-    The Maildir directory layout (as used by Kmail/Akonadi) keeps
-    subfolders in a path such as:
+    The Kmail/Akonadi system uses a different (non-standard) arrangement
+    for subfolders.  It would keep this subfolder in a path such as:
 
         ~/.Maildir.directory/.foo.directory/.bar.directory/.baz.directory/blah
 
-    This script runs on a Maildir+ directory (specified by MAILDIR)
-    and re-arranges the subfolders to follow a Maildir directory layout.
+    This script runs on a Maildir++ directory (specified by MAILDIR) and
+    re-arranges the subfolders to follow a Kmail Maildir directory layout.
 
     No files are added, removed, or changed. This script just renames
     directories.
